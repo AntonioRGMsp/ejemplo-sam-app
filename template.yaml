@@ -1,0 +1,117 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Transform: AWS::Serverless-2016-10-31
+Description: >
+  ejemplo-tony-sam-app
+
+  Sample SAM Template for ejemplo-tony-sam-app
+
+# More info about Globals: https://github.com/awslabs/serverless-application-model/blob/master/docs/globals.rst
+Globals:
+  Function:
+    Runtime: python3.12
+    Architectures:
+      - x86_64
+    Handler: app.lambda_handler
+    EphemeralStorage:
+      Size: 1000
+    Environment:
+      Variables:
+        ATLAS_URI: mongo_uri
+        DB_TEST: Test
+
+Resources:
+  ## Lambdas roles
+  TonyLambdasRole:
+    Type: AWS::IAM::Role
+    Properties:
+      Description: For allow lambdas execute their tasks.
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - lambda.amazonaws.com
+            Action:
+              - "sts:AssumeRole"
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AmazonDMSCloudWatchLogsRole
+        - arn:aws:iam::aws:policy/AmazonEventBridgeFullAccess
+        # - arn:aws:iam::aws:policy/AmazonEventBridgeSchedulerFullAccess
+        - arn:aws:iam::aws:policy/AmazonS3FullAccess
+        - arn:aws:iam::aws:policy/AmazonSQSFullAccess
+        - arn:aws:iam::aws:policy/AmazonEC2FullAccess
+        - arn:aws:iam::aws:policy/AmazonVPCFullAccess
+        - arn:aws:iam::aws:policy/service-role/AWSCodeDeployRoleForLambda
+        - arn:aws:iam::aws:policy/AWSLambda_FullAccess
+        - arn:aws:iam::aws:policy/AWSLambdaExecute
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaVPCAccessExecutionRole
+      RoleName: TonyLambdasRole
+
+  # SOURCES
+  BucketTonyTest:
+    Type: "AWS::S3::Bucket"
+    Properties:
+      BucketName: bucket-tony-test-1107200100
+
+  # QUEUE Policies
+  # Policy for S3 event notification
+  TonyS3EventNotificationPolicy:
+    Type: AWS::SQS::QueuePolicy
+    Properties:
+      Queues:
+        - !Ref TonyNewJsonsQueue
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Sid: example-statement-ID
+            Effect: Allow
+            Principal:
+              Service: "s3.amazonaws.com"
+            Action:
+              - "sqs:SendMessage"
+            Resource: !GetAtt TonyNewJsonsQueue.Arn
+            Condition:
+              ArnLike:
+                aws:SourceArn: !GetAtt BucketTonyTest.Arn
+              StringEquals:
+                aws:SourceAccount: "665531541875"
+
+  # # QUEUES
+  TonyNewJsonsQueue:
+    Type: AWS::SQS::Queue
+    Properties:
+      QueueName: TonyNewJsonsQueue
+      MessageRetentionPeriod: 86400 # seconds (1 day)
+      VisibilityTimeout: 2400 # seconds (40 min)
+
+  # # LAMBDAS
+  TonySaveJsonOnMongoDB:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: tony_save_json_on_mongo_db/
+      MemorySize: 1024
+      Timeout: 60
+      Role: !GetAtt TonyLambdasRole.Arn
+      Events:
+        SQSEvent:
+          Type: SQS
+          Properties:
+            Queue: !GetAtt TonyNewJsonsQueue.Arn
+            BatchSize: 1000
+            Enabled: true
+            MaximumBatchingWindowInSeconds: 10
+            ScalingConfig:
+              MaximumConcurrency: 2
+      Environment:
+        Variables:
+          MY_COLLECTION: tony_collection
+
+Outputs:
+  BucketTonyTest:
+    Value: !Ref BucketTonyTest
+    Description: "Nombre del bucket S3 que enviará notificaciones a la cola SQS"
+
+  TonyNewJsonsQueue:
+    Value: !Ref TonyNewJsonsQueue
+    Description: "URL de la cola SQS donde se recibirán las notificaciones"
