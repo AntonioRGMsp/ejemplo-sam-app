@@ -5,10 +5,12 @@ import pymongo
 from pymongo import MongoClient
 
 s3 = boto3.client('s3')
+lambdaClient = boto3.client('lambda')
 
 cluster = MongoClient(host=os.environ.get('ATLAS_URI'))
 db_test = cluster[os.environ.get('DB_TEST')]
 my_collection = db_test[os.environ.get('MY_COLLECTION')]
+lambda_hello_world_arn = os.environ.get('LAMBDA_HELLO_WORLD')
 
 def get_json_data_from_s3(keyObject, bucketName):
     get_obj_response = s3.get_object(
@@ -46,6 +48,12 @@ def lambda_handler(event, context):
                         json_data = get_json_data_from_s3(key_object, bucket_name)
                         upload_json_data_to_db(json_data)
                         print("Successfuly!!!")
+                        invoke_response = lambdaClient.invoke(
+                            FunctionName = lambda_hello_world_arn,
+                            InvocationType='Event',
+                            Payload = json_data
+                        )
+                        print('Response: ', invoke_response)
             else:
                 print("No Records key in the body of the message")
     except Exception as e:

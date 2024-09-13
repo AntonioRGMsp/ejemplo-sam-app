@@ -1,9 +1,9 @@
 AWSTemplateFormatVersion: "2010-09-09"
 Transform: AWS::Serverless-2016-10-31
 Description: >
-  ejemplo-tony-sam-app
+  ejemplo-Tony-sam-app
 
-  Sample SAM Template for ejemplo-tony-sam-app
+  Sample SAM Template for ejemplo-Tony-sam-app
 
 # More info about Globals: https://github.com/awslabs/serverless-application-model/blob/master/docs/globals.rst
 Globals:
@@ -16,7 +16,7 @@ Globals:
       Size: 1000
     Environment:
       Variables:
-        ATLAS_URI: mongo_uri
+        ATLAS_URI: mongodb+srv://aantonioramirez33:Bj6JzCUcaMtEysM1@clustertelemetry.lifiiiu.mongodb.net/?retryWrites=true&w=majority&appName=ClusterTelemetry
         DB_TEST: Test
 
 Resources:
@@ -52,7 +52,7 @@ Resources:
   BucketTonyTest:
     Type: "AWS::S3::Bucket"
     Properties:
-      BucketName: bucket-tony-test-1107200100
+      BucketName: bucket-tony-test-110720010012345600
 
   # QUEUE Policies
   # Policy for S3 event notification
@@ -98,7 +98,7 @@ Resources:
           Type: SQS
           Properties:
             Queue: !GetAtt TonyNewJsonsQueue.Arn
-            BatchSize: 1000
+            BatchSize: 100
             Enabled: true
             MaximumBatchingWindowInSeconds: 10
             ScalingConfig:
@@ -106,6 +106,15 @@ Resources:
       Environment:
         Variables:
           MY_COLLECTION: tony_collection
+          LAMBDA_HELLO_WORLD: !GetAtt TonyHelloWorld.Arn
+
+  TonyHelloWorld:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: tony_hello_word/
+      MemorySize: 512
+      Timeout: 20
+      Role: !GetAtt TonyLambdasRole.Arn
 
 Outputs:
   BucketTonyTest:
