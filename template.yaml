@@ -1,9 +1,9 @@
 AWSTemplateFormatVersion: "2010-09-09"
 Transform: AWS::Serverless-2016-10-31
 Description: >
-  ejemplo-tony-sam-app
+  ejemplo-Raul-sam-app
 
-  Sample SAM Template for ejemplo-tony-sam-app
+  Sample SAM Template for ejemplo-Raul-sam-app
 
 # More info about Globals: https://github.com/awslabs/serverless-application-model/blob/master/docs/globals.rst
 Globals:
@@ -16,12 +16,12 @@ Globals:
       Size: 1000
     Environment:
       Variables:
-        ATLAS_URI: mongo_uri
+        ATLAS_URI: mongodb+srv://aantonioramirez33:Bj6JzCUcaMtEysM1@clustertelemetry.lifiiiu.mongodb.net/?retryWrites=true&w=majority&appName=ClusterTelemetry
         DB_TEST: Test
 
 Resources:
   ## Lambdas roles
-  TonyLambdasRole:
+  RaulLambdasRole:
     Type: AWS::IAM::Role
     Properties:
       Description: For allow lambdas execute their tasks.
@@ -46,21 +46,21 @@ Resources:
         - arn:aws:iam::aws:policy/AWSLambda_FullAccess
         - arn:aws:iam::aws:policy/AWSLambdaExecute
         - arn:aws:iam::aws:policy/service-role/AWSLambdaVPCAccessExecutionRole
-      RoleName: TonyLambdasRole
+      RoleName: RaulLambdasRole
 
   # SOURCES
-  BucketTonyTest:
+  BucketRaulTest:
     Type: "AWS::S3::Bucket"
     Properties:
-      BucketName: bucket-tony-test-1107200100
+      BucketName: bucket-raul-test-1107200121
 
   # QUEUE Policies
   # Policy for S3 event notification
-  TonyS3EventNotificationPolicy:
+  RaulS3EventNotificationPolicy:
     Type: AWS::SQS::QueuePolicy
     Properties:
       Queues:
-        - !Ref TonyNewJsonsQueue
+        - !Ref RaulNewJsonsQueue
       PolicyDocument:
         Version: "2012-10-17"
         Statement:
@@ -70,48 +70,57 @@ Resources:
               Service: "s3.amazonaws.com"
             Action:
               - "sqs:SendMessage"
-            Resource: !GetAtt TonyNewJsonsQueue.Arn
+            Resource: !GetAtt RaulNewJsonsQueue.Arn
             Condition:
               ArnLike:
-                aws:SourceArn: !GetAtt BucketTonyTest.Arn
+                aws:SourceArn: !GetAtt BucketRaulTest.Arn
               StringEquals:
                 aws:SourceAccount: "665531541875"
 
   # # QUEUES
-  TonyNewJsonsQueue:
+  RaulNewJsonsQueue:
     Type: AWS::SQS::Queue
     Properties:
-      QueueName: TonyNewJsonsQueue
+      QueueName: RaulNewJsonsQueue
       MessageRetentionPeriod: 86400 # seconds (1 day)
       VisibilityTimeout: 2400 # seconds (40 min)
 
   # # LAMBDAS
-  TonySaveJsonOnMongoDB:
+  RaulSaveJsonOnMongoDB:
     Type: AWS::Serverless::Function
     Properties:
-      CodeUri: tony_save_json_on_mongo_db/
+      CodeUri: raul_save_json_on_mongo_db/
       MemorySize: 1024
       Timeout: 60
-      Role: !GetAtt TonyLambdasRole.Arn
+      Role: !GetAtt RaulLambdasRole.Arn
       Events:
         SQSEvent:
           Type: SQS
           Properties:
-            Queue: !GetAtt TonyNewJsonsQueue.Arn
-            BatchSize: 1000
+            Queue: !GetAtt RaulNewJsonsQueue.Arn
+            BatchSize: 100
             Enabled: true
             MaximumBatchingWindowInSeconds: 10
             ScalingConfig:
               MaximumConcurrency: 2
       Environment:
         Variables:
-          MY_COLLECTION: tony_collection
+          MY_COLLECTION: raul_collection
+          LAMBDA_HELLO_WORLD: !GetAtt raulHelloWorld.Arn
+
+  raulHelloWorld:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: raul_hello_word/
+      MemorySize: 512
+      Timeout: 20
+      Role: !GetAtt RaulLambdasRole.Arn
 
 Outputs:
-  BucketTonyTest:
-    Value: !Ref BucketTonyTest
+  BucketRaulTest:
+    Value: !Ref BucketRaulTest
     Description: "Nombre del bucket S3 que enviará notificaciones a la cola SQS"
 
-  TonyNewJsonsQueue:
-    Value: !Ref TonyNewJsonsQueue
+  RaulNewJsonsQueue:
+    Value: !Ref RaulNewJsonsQueue
     Description: "URL de la cola SQS donde se recibirán las notificaciones"

@@ -39,3 +39,13 @@ confirm_changeset = true
 capabilities = "CAPABILITY_NAMED_IAM"
 image_repositories = []
 profile = "default"
+
+[raultest.deploy.parameters]
+stack_name = "ejemplo-raul-sam-app"
+resolve_s3 = true
+s3_prefix = "ejemplo-raul-sam-app"
+region = "us-west-1"
+profile = "default"
+confirm_changeset = true
+capabilities = "CAPABILITY_NAMED_IAM"
+image_repositories = []
